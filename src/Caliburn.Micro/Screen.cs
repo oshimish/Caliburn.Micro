@@ -57,7 +57,7 @@
         /// </summary>
         public bool IsInitialized {
             get { return isInitialized; }
-            private set {
+            protected set {
                 isInitialized = value;
                 NotifyOfPropertyChange("IsInitialized");
             }
