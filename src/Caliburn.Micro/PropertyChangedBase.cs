@@ -1,4 +1,6 @@
-﻿namespace Caliburn.Micro {
+﻿using System.Threading.Tasks;
+
+namespace Caliburn.Micro {
     using System;
     using System.ComponentModel;
     using System.Linq.Expressions;
@@ -14,6 +16,8 @@
         /// </summary>
         public PropertyChangedBase() {
             IsNotifying = true;
+            NotifyOnUiThread = false;
+            AsyncNotifications = false;
         }
 
         /// <summary>
@@ -25,6 +29,16 @@
         /// Enables/Disables property change notification.
         /// </summary>
         public bool IsNotifying { get; set; }
+
+        /// <summary>
+        /// Enables/Disables marshaling property change notification on Ui Thread. Enabled by default.
+        /// </summary>
+        public bool NotifyOnUiThread { get; set; }        
+        
+        /// <summary>
+        /// Enables/Disables non-synchronous property change notifications (only queue notification and return). Enabled by default.
+        /// </summary>
+        public bool AsyncNotifications { get; set; }
 
         /// <summary>
         /// Raises a change notification indicating that all bindings should be refreshed.
@@ -42,8 +56,25 @@
 #else
         public virtual void NotifyOfPropertyChange([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null) {
 #endif
-            if (IsNotifying) {
-                Execute.OnUIThread(() => OnPropertyChanged(new PropertyChangedEventArgs(propertyName)));
+            if (!IsNotifying) { return; }
+
+            if (NotifyOnUiThread) {
+                if (AsyncNotifications)
+                {
+                    Execute.BeginOnUIThread(() => OnPropertyChanged(new PropertyChangedEventArgs(propertyName)));
+                }
+                else
+                {
+                    Execute.OnUIThread(() => OnPropertyChanged(new PropertyChangedEventArgs(propertyName)));
+                }
+            } else {
+                if (AsyncNotifications) {
+                    Task.Factory.StartNew(() => OnPropertyChanged(new PropertyChangedEventArgs(propertyName)));
+                }
+                else
+                {
+                    OnPropertyChanged(new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
 
